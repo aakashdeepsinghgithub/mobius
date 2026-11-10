@@ -1,0 +1,23 @@
+//@title Permutation ⇄ Lehmer code
+//@desc perm_to_code turns a permutation into its inversion table (Lehmer code). Its inverse — code_to_perm — was never written: it is `uncall perm_to_code`. main encodes, then decodes a different code into the permutation it names.
+int perm[8] = {3, 7, 0, 5, 1, 6, 4, 2}
+int code[8] = {0, 0, 0, 1, 2, 0, 5, 7}
+
+procedure main()
+  call perm_to_code(perm)       // perm now holds its Lehmer code
+  uncall perm_to_code(code)     // code now holds the permutation with that code
+
+procedure perm_to_code(int x[])
+  local int k = size(x)
+  from k = size(x) loop
+    k -= 1
+    local int j = 0
+    from j = 0 loop
+      if x[j] > x[k] then
+        x[j] -= 1
+      fi x[j] >= x[k]
+      j += 1
+    until j = k
+    delocal int j = k
+  until k = 0
+  delocal int k = 0

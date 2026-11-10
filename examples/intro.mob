@@ -1,0 +1,19 @@
+//@title Welcome to Möbius
+//@desc A first taste. Every statement here can run backwards. Step forward a few times, then step BACK — the machine reconstructs its past from the present alone (watch the "history" counter: it stays at 0 bytes).
+int n = 10
+int i
+int squares
+int cubes
+
+procedure main()
+  // from <entry assertion> loop <body> until <exit test>
+  // The entry assertion (i = 0) is true only on the first pass, which is
+  // exactly what lets the loop be run backwards: in reverse it becomes the exit test.
+  from i = 0 loop
+    i += 1
+    squares += i * i
+    cubes += i * i * i
+    write squares
+  until i = n
+  // There is no `x := e` in Möbius. `x := e` would erase x's old value,
+  // and erasing information is precisely what reversible computation forbids.

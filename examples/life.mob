@@ -1,0 +1,44 @@
+//@title Reversible Game of Life (Fredkin's second-order trick)
+//@desc Conway's Life destroys information — many pasts lead to the same present. Fredkin's trick makes any cellular automaton reversible: next = rule(now) XOR previous. Run it and the word MOBIUS dissolves into chaos. Then run it backward: the chaos un-mixes and the word reassembles, exactly.
+//@viz cur 40
+//@viz prev 40
+const W = 40
+const N = 1600
+const GENS = 24
+
+int font[5] = {0b101011101100111010101110, 0b111010101010010010101000, 0b101010101100010010101110, 0b101010101010010010100010, 0b101011101100111011101110}
+int cur[1600]
+int prev[1600]
+int g
+
+procedure main()
+  call seed(cur)
+  from g = 0 loop
+    call step(cur, prev)      // prev ^= life(cur): prev becomes the next generation
+    call step(prev, cur)      // cur  ^= life(prev)
+    g += 1
+  until g = GENS
+
+procedure seed(int a[])
+  local int r = 0
+  from r = 0 loop
+    local int c = 0
+    from c = 0 loop
+      a[(17 + r) * W + 8 + c] += (font[r] >> (23 - c)) & 1
+      c += 1
+    until c = 24
+    delocal int c = 24
+    r += 1
+  until r = 5
+  delocal int r = 5
+
+// b[i] ^= Life(a, i). Because the update XORs into b, it is its own inverse.
+procedure step(int a[], int b[])
+  local int i = 0
+  from i = 0 loop
+    local int n = a[(i + N - W - 1) % N] + a[(i + N - W) % N] + a[(i + N - W + 1) % N] + a[(i + N - 1) % N] + a[(i + 1) % N] + a[(i + W - 1) % N] + a[(i + W) % N] + a[(i + W + 1) % N]
+    b[i] ^= n = 3 || n = 2 && a[i] != 0
+    delocal int n = a[(i + N - W - 1) % N] + a[(i + N - W) % N] + a[(i + N - W + 1) % N] + a[(i + N - 1) % N] + a[(i + 1) % N] + a[(i + W - 1) % N] + a[(i + W) % N] + a[(i + W + 1) % N]
+    i += 1
+  until i = N
+  delocal int i = N

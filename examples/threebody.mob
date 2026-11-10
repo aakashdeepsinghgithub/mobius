@@ -1,0 +1,65 @@
+//@title Reverse chaos: the Pythagorean three-body problem
+//@desc Burrau's problem (1913): masses 3, 4, 5 released at rest on a 3-4-5 triangle. The motion is wildly chaotic — tiny errors explode exponentially — and yet this simulation is *exactly* reversible: integer leapfrog updates are bijections. Let the triangle dissolve into a tangle of near-collisions, then run it backwards: every close encounter un-happens and the three bodies glide back to rest at their starting corners, bit-for-bit.
+//@plot -1300 800 -800 1300
+const N = 3
+const C = 20480000        // G in machine units: 4096 * L^3 / T^2 with L = 200, T = 40
+const EPS = 1600           // softening (coarse units^2)
+const STEPS = 2400
+
+int m[3] = {3, 4, 5}
+int px[3] = {3200, -6400, 3200}     // fine units (1/16 of a coarse unit)
+int py[3] = {9600, -3200, -3200}
+int vx[3]                           // 1/4096 coarse units per step
+int vy[3]
+int t
+
+procedure main()
+  from t = 0 loop
+    call kick()
+    call drift()
+    call show()
+    t += 1
+  until t = STEPS
+
+// v += a(x): velocities change by a function of positions only -> invertible (v -= a(x)).
+procedure kick()
+  local int i = 0
+  from i = 0 loop
+    local int j = 0
+    from j = 0 loop
+      if i != j then
+        local int dx = (px[j] - px[i]) / 16
+        local int dy = (py[j] - py[i]) / 16
+        local int r2 = dx * dx + dy * dy + EPS
+        local int r = sqrt(r2)
+        vx[i] += C * m[j] / r * dx / r2
+        vy[i] += C * m[j] / r * dy / r2
+        delocal int r = sqrt(r2)
+        delocal int r2 = dx * dx + dy * dy + EPS
+        delocal int dy = (py[j] - py[i]) / 16
+        delocal int dx = (px[j] - px[i]) / 16
+      fi i != j
+      j += 1
+    until j = N
+    delocal int j = N
+    i += 1
+  until i = N
+  delocal int i = N
+
+// x += v: positions change by a function of velocities only -> invertible.
+procedure drift()
+  local int i = 0
+  from i = 0 loop
+    px[i] += vx[i] / 256
+    py[i] += vy[i] / 256
+    i += 1
+  until i = N
+  delocal int i = N
+
+procedure show()
+  local int i = 0
+  from i = 0 loop
+    plot px[i] / 16, py[i] / 16, i
+    i += 1
+  until i = N
+  delocal int i = N

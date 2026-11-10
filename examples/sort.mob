@@ -1,0 +1,26 @@
+//@title Reversible sorting — and un-sorting
+//@desc Sorting destroys information (which permutation was the input?), so a reversible sort must keep a record: here a stack of swap decisions. Run backward and the sorted array is shuffled back into its exact original order.
+int a[12] = {42, 7, 19, 88, 3, 64, 25, 11, 97, 50, 33, 76}
+stack trace[66]
+
+procedure main()
+  call bubble(a, trace)
+
+procedure bubble(int a[], stack trace)
+  local int i = 0
+  from i = 0 loop
+    local int j = 0
+    from j = 0 loop
+      local int s = 0
+      if a[j] > a[j + 1] then
+        a[j] <=> a[j + 1]
+        s += 1
+      fi s = 1
+      push(s, trace)
+      delocal int s = 0
+      j += 1
+    until j = size(a) - 1 - i
+    delocal int j = size(a) - 1 - i
+    i += 1
+  until i = size(a) - 1
+  delocal int i = size(a) - 1

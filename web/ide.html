@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Möbius — a reversible language and a time-travel machine</title>
+<style>
+:root {
+  --bg: #0a0c11; --panel: #10141b; --panel2: #151a23; --line: #222a36; --ink: #d7dde8; --dim: #7a8597; --faint: #4a5466;
+  --fwd: #f5b14c; --back: #4cc9f0; --bad: #ff5d73; --good: #7ee08a;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --dir: var(--fwd);
+}
+body.backward { --dir: var(--back); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13px/1.45 var(--mono); }
+button, select, input { font: inherit; color: inherit; }
+header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, #0d1016, #0f131a); }
+.logo { font-size: 18px; font-weight: 700; letter-spacing: .5px; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.logo svg { width: 34px; height: 20px; }
+.logo small { color: var(--dim); font-weight: 400; font-size: 12px; letter-spacing: 0; }
+header .grow { flex: 1; min-width: 0; }
+#title { font-weight: 600; color: var(--dir); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .3s; }
+select { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+main { display: grid; grid-template-columns: minmax(380px, 1.05fr) minmax(380px, 1fr) minmax(330px, .9fr); height: calc(100% - 53px); }
+section { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+section:last-child { border-right: 0; }
+.tabs { display: flex; gap: 2px; padding: 6px 10px 0; border-bottom: 1px solid var(--line); background: var(--panel); }
+.tabs button { background: none; border: 0; padding: 6px 10px; color: var(--dim); cursor: pointer; border-bottom: 2px solid transparent; }
+.tabs button.on { color: var(--ink); border-bottom-color: var(--dir); }
+.pane { display: none; flex: 1; min-height: 0; overflow: auto; }
+.pane.show { display: flex; flex-direction: column; }
+#desc { padding: 8px 14px; color: var(--dim); border-bottom: 1px solid var(--line); font-size: 12px; background: var(--panel); }
+.editor { position: relative; flex: 1; min-height: 0; }
+#hl, #src { position: absolute; inset: 0; margin: 0; padding: 8px 10px 8px 0; font: 13px/19px var(--mono); white-space: pre; overflow: auto; tab-size: 2; }
+#hl { pointer-events: none; color: var(--ink); overflow: hidden; }
+#src { background: transparent; color: transparent; caret-color: var(--dir); border: 0; outline: 0; resize: none; padding-left: 52px; }
+.ln { padding-left: 52px; position: relative; min-height: 19px; }
+.ln .gut { position: absolute; left: 0; width: 40px; text-align: right; color: var(--faint); }
+.ln.active { background: color-mix(in srgb, var(--dir) 14%, transparent); box-shadow: inset 3px 0 0 var(--dir); }
+.ln.active .gut { color: var(--dir); }
+.ln.err { background: #ff5d7322; box-shadow: inset 3px 0 0 var(--bad); }
+.kw { color: #c792ea; } .kw2 { color: var(--fwd); font-weight: 600; } .bi { color: #82aaff; } .num { color: #f78c6c; } .com { color: var(--faint); font-style: italic; } .prag { color: #5f7e6b; } .upd { color: #89ddff; }
+#err { display: none; padding: 8px 14px; background: #2a1118; color: #ffb3bf; border-top: 1px solid #5a2030; white-space: pre-wrap; }
+#err.show { display: block; }
+#inverse { padding: 8px 14px; white-space: pre; font: 13px/19px var(--mono); }
+.note-box { padding: 10px 14px; color: var(--dim); border-bottom: 1px solid var(--line); background: var(--panel); font-size: 12px; }
+#docs { padding: 4px 18px 30px; font-size: 12.5px; line-height: 1.6; }
+#docs h3 { color: var(--fwd); margin: 18px 0 4px; font-size: 13px; }
+#docs code, #docs pre { color: #cfe3ff; background: var(--panel2); border-radius: 4px; }
+#docs code { padding: 1px 4px; } #docs pre { padding: 8px 10px; overflow: auto; }
+#isa table { border-collapse: collapse; width: 100%; } #isa td { padding: 2px 8px 2px 0; border-bottom: 1px solid var(--line); vertical-align: top; } #isa td:first-child { color: var(--fwd); }
+/* machine */
+#machine.off { opacity: .4; pointer-events: none; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 6px; align-items: center; background: var(--panel); }
+.controls button { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; min-width: 38px; }
+.controls button:hover:not(:disabled) { border-color: var(--dir); }
+.controls button:disabled { opacity: .35; cursor: default; }
+.controls button.on { background: var(--dir); color: #0a0c11; border-color: var(--dir); }
+#b-back, #b-rplay, #b-rewind { color: var(--back); } #b-step, #b-play, #b-end { color: var(--fwd); }
+#b-back.on, #b-rplay.on { color: #0a0c11; background: var(--back); border-color: var(--back); }
+.controls .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.controls label { color: var(--dim); font-size: 11px; display: flex; gap: 6px; align-items: center; }
+input[type=range] { accent-color: var(--dir); }
+.tl { display: flex; gap: 8px; align-items: center; padding: 2px 12px 10px; background: var(--panel); border-bottom: 1px solid var(--line); color: var(--dim); font-size: 11px; }
+.tl input { flex: 1; }
+.dash { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
+.dash div { padding: 8px 12px; border-right: 1px solid var(--line); }
+.dash div:last-child { border-right: 0; }
+.dash small { display: block; color: var(--dim); font-size: 10.5px; text-transform: uppercase; letter-spacing: .6px; }
+.dash b { font-size: 15px; color: var(--dir); font-weight: 600; white-space: nowrap; }
+.dash .zero b { color: var(--good); }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); font-size: 11px; color: var(--dim); }
+.chip.bad { color: var(--bad); border-color: var(--bad); } .chip.good { color: var(--good); border-color: var(--good); } .chip.live { color: var(--dir); border-color: var(--dir); }
+.statusbar { display: flex; gap: 10px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--line); font-size: 11.5px; color: var(--dim); }
+#fault { color: var(--bad); padding: 0 12px; font-size: 12px; }
+#fault:empty { display: none; } #fault { padding: 6px 12px; border-bottom: 1px solid var(--line); }
+#listing { flex: 1; overflow: hidden; padding: 6px 0; font-size: 12px; }
+.row { display: grid; grid-template-columns: 54px 250px 1fr; padding: 0 12px; white-space: nowrap; line-height: 19px; }
+.row .addr { color: var(--faint); text-align: right; padding-right: 12px; }
+.row .note { color: var(--faint); overflow: hidden; text-overflow: ellipsis; }
+.row.cur { background: color-mix(in srgb, var(--fwd) 18%, transparent); box-shadow: inset 3px 0 0 var(--fwd); }
+.row.cur.back { background: color-mix(in srgb, var(--back) 18%, transparent); box-shadow: inset 3px 0 0 var(--back); }
+.row.cur .addr { color: var(--ink); }
+.proc { color: #c792ea; padding: 6px 12px 0 22px; font-size: 11.5px; }
+#regs { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px; border-top: 1px solid var(--line); max-height: 92px; overflow: auto; background: var(--panel); }
+.reg { background: var(--panel2); border-radius: 4px; padding: 1px 6px; font-size: 11px; }
+.reg b { color: var(--dim); font-weight: 400; } .reg.live { color: var(--dir); } .dim { color: var(--faint); }
+/* state */
+h4 { margin: 0; padding: 9px 14px 5px; font-size: 10.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .7px; display: flex; justify-content: space-between; }
+h4 span { text-transform: none; letter-spacing: 0; color: var(--faint); }
+#globals { padding: 0 14px 6px; }
+.g { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
+.g label { color: #82aaff; min-width: 74px; }
+.g.arr { align-items: flex-start; } .g.arr label { padding-top: 4px; }
+.cells { display: flex; flex-wrap: wrap; gap: 3px; }
+.gi { background: var(--panel2); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; width: 110px; }
+.gi.c { width: 56px; padding: 2px 4px; text-align: right; }
+.gi:focus { outline: none; border-color: var(--dir); }
+.gi.chg { animation: chg .6s; }
+@keyframes chg { from { background: color-mix(in srgb, var(--dir) 40%, transparent); } }
+.stack i, #tape i { font-style: normal; background: var(--panel2); border-radius: 3px; padding: 0 5px; margin: 0 3px 3px 0; display: inline-block; }
+.sum { color: var(--dim); }
+#tape { padding: 0 14px 8px; max-height: 110px; overflow: auto; }
+#plot-wrap, #viz { padding: 0 14px 8px; }
+#plot { width: 100%; max-width: 420px; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 6px; display: block; }
+#viz { display: flex; gap: 10px; flex-wrap: wrap; }
+#viz figure { margin: 0; } #viz canvas { width: 180px; height: 180px; border: 1px solid var(--line); border-radius: 6px; image-rendering: pixelated; }
+#viz figcaption { color: var(--dim); font-size: 11px; text-align: center; }
+.state-scroll { overflow: auto; flex: 1; }
+.verify { padding: 4px 14px 14px; }
+.verify button { background: var(--panel2); border: 1px solid var(--good); color: var(--good); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+#verify-out { margin-top: 8px; font-size: 12px; color: var(--ink); }
+#flash { position: fixed; bottom: 18px; left: 50%; transform: translate(-50%, 30px); opacity: 0; transition: .3s; background: var(--panel2); border: 1px solid var(--dir); padding: 9px 16px; border-radius: 8px; max-width: 640px; pointer-events: none; }
+#flash.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 1150px) { main { grid-template-columns: 1fr; height: auto; } section { min-height: 520px; border-right: 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 68 40" fill="none" stroke-width="5" stroke-linecap="round"><path d="M34 20 C24 4, 6 4, 6 20 C6 36, 24 36, 34 20" stroke="#f5b14c"/><path d="M34 20 C44 36, 62 36, 62 20 C62 4, 44 4, 34 20" stroke="#4cc9f0"/></svg>
+    Möbius <small>reversible language · reversible machine</small>
+  </div>
+  <select id="examples" title="Example programs"></select>
+  <div class="grow"><div id="title"></div></div>
+  <span class="chip" id="stat-code"></span>
+</header>
+<main>
+  <section>
+    <div class="tabs" data-group="left">
+      <button class="on" data-show="p-src">Source</button>
+      <button data-show="p-inv">Inverse I[p]</button>
+      <button data-show="p-docs">How it works</button>
+    </div>
+    <div class="pane show" id="p-src" data-pane="left">
+      <div id="desc"></div>
+      <div class="editor"><div id="hl"></div><textarea id="src" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></div>
+      <div id="err"></div>
+    </div>
+    <div class="pane" id="p-inv" data-pane="left">
+      <div class="note-box">The inverse program, derived mechanically from the source by local rewriting — no analysis, no search. <code>+=</code> becomes <code>-=</code>, statement order flips, <code>if</code>'s test and assertion trade places, loops run from their exit to their entry, and <code>push</code>/<code>pop</code>, <code>local</code>/<code>delocal</code>, <code>write</code>/<code>unwrite</code> swap. Compiled and run forward on main's output, it reproduces main's input. The test suite checks this on thousands of random programs.</div>
+      <div id="inverse"></div>
+    </div>
+    <div class="pane" id="p-docs" data-pane="left"><div id="docs">
+      <h3>The idea</h3>
+      <p>Ordinary computers forget. <code>x = 0</code> erases whatever <code>x</code> held, and by Landauer's principle that erasure is where the heat of computation comes from. A <em>reversible</em> computer never erases anything: every step is a bijection on machine states, so the past can always be recovered from the present.</p>
+      <p>Möbius is three things built on that idea: a reversible programming language (in the Janus family), a reversible instruction set and machine (in the Pendulum/PISA family), and a compiler between them. They make possible a debugger that steps <b>backwards</b> by <b>computing</b> the previous state, without recording it. Look at the <i>history buffer</i> gauge: it reads 0 bytes, always.</p>
+      <h3>The language</h3>
+<pre>x += e   x -= e   x ^= e     // e may not mention x
+x <=> y                       // swap
+if c then … else … fi a       // a: exit assertion, true iff then-branch ran
+from a do … loop … until c    // a true on entry, false on every re-entry
+local int t = e  …  delocal int t = e'
+call p(x, y)    uncall p(x, y) // uncall runs p backwards
+push(x, s)      pop(x, s)      // push zeroes x; pop requires x = 0
+write e         plot x, y, c   // reversible output: unwrite consumes</pre>
+      <p>There is no assignment. The assertions in <code>fi</code> and <code>from</code> are what let control flow merge reversibly: arriving at a <code>fi</code> backwards, the assertion tells you which branch you came from. If an assertion is false at run time, the program is outside the domain of its bijection, and the machine faults.</p>
+      <h3>The machine</h3>
+      <p>Jumps don't overwrite <code>pc</code>. They add to a branch register <code>br</code>, and after each instruction <code>pc += br ≠ 0 ? br : dir</code>. Every jump lands on a matching <em>come-from</em> branch that cancels <code>br</code>, so every landing site knows where it was jumped from. <code>dir</code> is the direction of time. With <code>dir = −1</code>, each instruction executes its inverse, in reverse order. <code>uncall</code> is just <code>RBRA</code>, which flips <code>dir</code> and jumps into the procedure.</p>
+      <p>Expressions compile <em>Bennett-style</em>: every intermediate value is XORed into a fresh register (<code>rd ^= f(ra, rb)</code> is its own inverse), the result is used, then the whole sequence is replayed backwards to scrub the garbage. Between statements all 253 scratch registers are zero, and <code>CHKZ</code> verifies it. That check is also how aliasing violations are caught.</p>
+      <h3>Two kinds of "backwards"</h3>
+      <p><b>◀ / ◀◀</b> apply T⁻¹, the inverse of the transition function. Given the current (pc, br, dir), the previous pc is <code>pc − (br ≠ 0 ? br : dir)</code>, and that instruction is undone. This is time travel: you see exactly the states you passed through.</p>
+      <p><b>⇆ main⁻¹</b> flips the direction bit and runs the <i>inverse program</i> on whatever is in memory now. Edit the globals first and it computes a pre-image: put ciphertext into TEA and it decrypts, or put a Lehmer code into <code>perm</code> and it builds the permutation.</p>
+      <h3>Keys</h3>
+      <p><code>→</code> step · <code>←</code> step back · <code>space</code> play/pause · <code>backspace</code> play backwards. Set granularity to "source line" to step through statements instead of instructions.</p>
+      <h3>Instruction set</h3>
+      <div id="isa"></div>
+    </div></div>
+  </section>
+
+  <section id="machine">
+    <div class="controls">
+      <button id="b-reset" data-needs-vm title="Reset machine to the program's initial data">⟲</button>
+      <span class="sep"></span>
+      <button id="b-rewind" data-needs-vm title="Rewind to t = 0 (computed, not replayed)">⏮</button>
+      <button id="b-rplay" data-needs-vm title="Play backwards (T⁻¹)">◀◀</button>
+      <button id="b-back" data-needs-vm title="Step back (←)">◀</button>
+      <button id="b-step" data-needs-vm title="Step (→)">▶</button>
+      <button id="b-play" data-needs-vm title="Play (space)">▶▶</button>
+      <button id="b-end" data-needs-vm title="Run to the end instantly">⏭</button>
+      <span class="sep"></span>
+      <button id="b-inverse" title="Flip the direction bit and execute main⁻¹ on the current store">⇆ main⁻¹</button>
+      <span class="sep"></span>
+      <label>step <select id="gran"><option value="ins">instruction</option><option value="line">source line</option></select></label>
+      <label>speed <input id="speed" type="range" min="0" max="9" step="1"> <span id="speed-l"></span></label>
+    </div>
+    <div class="tl"><span>t = 0</span><input id="timeline" type="range" min="0" max="1" value="0" title="Scrub through time: every position is recomputed, not replayed"><span id="tl-max">0</span></div>
+    <div class="dash">
+      <div><small>clock t</small><b id="t">0</b></div>
+      <div><small>pc · br</small><b><span id="pc">0</span> · <span id="br">0</span></b></div>
+      <div><small>direction (dir)</small><b id="dir">+1</b></div>
+      <div class="zero" title="Bytes of execution history the machine has stored to be able to go back"><small>history buffer</small><b id="hist">0 bytes</b></div>
+    </div>
+    <div class="statusbar"><span class="chip" id="status"></span><span id="epoch"></span><span style="margin-left:auto" title="What an undo-log debugger would have recorded for the same reach (≈12 bytes per instruction)">undo-log equivalent: <span id="naive">0</span></span></div>
+    <div id="fault"></div>
+    <div id="listing"></div>
+    <div id="regs"></div>
+  </section>
+
+  <section>
+    <div class="state-scroll">
+      <h4>globals <span>editable: change the present, then step back</span></h4>
+      <div id="globals"></div>
+      <div id="plot-wrap"><h4 style="padding-left:0">plot <span id="plot-n"></span></h4><canvas id="plot" width="640" height="640"></canvas></div>
+      <div id="viz"></div>
+      <h4>output tape <span id="tape-n"></span></h4>
+      <div id="tape"></div>
+      <h4>proof <span>check the bijection on this program</span></h4>
+      <div class="verify"><button id="b-verify" data-needs-vm>Verify reversibility</button><div id="verify-out"></div></div>
+    </div>
+  </section>
+</main>
+<div id="flash"></div>
+<script>window.MOBIUS_EXAMPLES = /*__EXAMPLES__*/[];</script>
+<script>/*__BUNDLE__*/</script>
+</body>
+</html>

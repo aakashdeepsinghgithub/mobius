@@ -1,0 +1,30 @@
+//@title TEA block cipher — decryption for free
+//@desc The Tiny Encryption Algorithm written as a reversible program. Nobody wrote a decryption routine: `uncall tea` *is* decryption, derived mechanically by the inverter. The test suite checks the ciphertext bit-for-bit against a reference TEA implementation.
+int key[4] = {0x01234567, 0x89abcdef, 0xfedcba98, 0x76543210}
+int data[6] = {'M' * 256 + 'o', 'b' * 256 + 'i', 'u' * 256 + 's', '!' * 256 + '!', 2026, 11}
+int plain[6]
+
+procedure main()
+  local int b = 0
+  from b = 0 loop
+    plain[b] += data[b]              // keep a copy for comparison
+    plain[b + 1] += data[b + 1]
+    call tea(data, key, b)
+    write data[b]
+    write data[b + 1]
+    b += 2
+  until b = size(data)
+  delocal int b = size(data)
+
+// Encrypt the 64-bit block data[i], data[i+1] in place, 32 rounds.
+procedure tea(int v[], int k[], int i)
+  local int sum = 0
+  local int r = 0
+  from r = 0 loop
+    sum += 0x9e3779b9
+    v[i] += ((v[i + 1] << 4) + k[0]) ^ (v[i + 1] + sum) ^ ((v[i + 1] >>> 5) + k[1])
+    v[i + 1] += ((v[i] << 4) + k[2]) ^ (v[i] + sum) ^ ((v[i] >>> 5) + k[3])
+    r += 1
+  until r = 32
+  delocal int r = 32
+  delocal int sum = 0x9e3779b9 * 32

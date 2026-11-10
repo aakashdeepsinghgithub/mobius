@@ -1,0 +1,17 @@
+{
+  "name": "mobius-reversible",
+  "version": "1.0.0",
+  "description": "Möbius: a reversible programming language, compiler, reversible machine, and zero-history time-travel debugger",
+  "type": "module",
+  "bin": {
+    "mobius": "bin/mobius.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node tools/build-ide.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}

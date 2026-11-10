@@ -1,0 +1,29 @@
+//@title Bennett's trick: computing a non-injective function cleanly
+//@desc The Collatz step count is not injective, so a reversible machine cannot compute it directly. Bennett (1973): compute while saving a trail of "garbage" bits, copy the answer out, then UNCALL the computation to erase the garbage. Watch `trail` fill up and drain back to empty.
+int n = 27
+int steps
+int answer
+stack trail[200]
+
+procedure main()
+  call collatz(n, steps, trail)      // forward: n -> 1, garbage piles up on trail
+  answer += steps                    // copy the result (the only irreversible-looking act... it isn't)
+  uncall collatz(n, steps, trail)    // backward: un-compute; trail is erased, n restored
+  write answer
+
+procedure collatz(int n, int steps, stack trail)
+  from steps = 0 loop
+    local int odd = n % 2
+    if odd = 1 then
+      local int t = 3 * n + 1
+      n <=> t
+      delocal int t = (n - 1) / 3
+    else
+      local int t = n / 2
+      n <=> t
+      delocal int t = n * 2
+    fi odd = 1
+    push(odd, trail)                 // remember which branch we took; odd becomes 0
+    delocal int odd = 0
+    steps += 1
+  until n = 1
