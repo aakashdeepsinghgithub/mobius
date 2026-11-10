@@ -1,5 +1,7 @@
 # Möbius
 
+**▶ Try it live:** https://aakashdeepsinghgithub.github.io/mobius/
+
 **A reversible programming language, a compiler, a reversible machine, and a time-travel debugger that keeps no history.**
 
 Normal computers throw information away. `x = 0` erases the old value of `x`, and Landauer's principle says that erasure is what makes computation give off heat. A reversible computer never erases anything. Each step is a bijection on the whole machine state, so the past can be *computed* from the present.
